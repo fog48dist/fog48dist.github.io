@@ -1,0 +1,17 @@
+html{
+  height: 100%;
+  min-height: 100%;
+}
+body {
+  background-color: hsl(0, 0%, 80%);
+  --margin-size:12px;
+  margin: var(--margin-size);
+  height: calc(100% - 2 * var(--margin-size,));
+  width: calc(100% - 2 * var(--margin-size)); 
+  gap: 8px;
+  display: grid;
+}
+body > * {
+  background-color: white;
+  border: none;
+}
