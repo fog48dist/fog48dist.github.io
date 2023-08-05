@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Square jump</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+    <style>
+      #canvas {
+        background-color: hsl(0, 0%, 65%);
+      }
+      div {
+        user-select: none;
+      }
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        touch-action: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info"></div>
+    <script id="vs" type="x-shader/x-vertex">
+      #version 300 es
+      precision highp float;
+      precision highp int;
+      layout(location = 0) in vec2 vpos;
+      flat out vec3 v_color;
+      out vec2 relpos;
+      //uniform float u_y;
+      uniform float u_maxy;
+      uniform vec2 u_res;
+      uniform vec4 u_pos[10];
+      vec3 hsv2rgb(vec3 c)
+      {
+          vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+          vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+          return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+      }
+      void main()
+      {
+          vec4 ipos=u_pos[gl_InstanceID];
+          //vec2 pos=vec2(.0,u_res.y-u_maxy-50.)+u_pos[gl_InstanceID].xy+vpos*u_pos[gl_InstanceID].zw;
+          vec2 pos=vec2(.0,u_res.y-u_maxy-50.)+mix(ipos.xy,ipos.zw,vpos);
+          pos=pos*2./u_res-1.;
+          gl_Position = vec4(pos, 0.0, 1.0);
+          v_color=vec3(0.5);
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      #version 300 es
+      precision highp float;
+      flat in vec3 v_color;
+      in vec2 relpos;
+      out vec4 color;
+      void main()
+      {
+        if(length(relpos)<1.){
+          color =vec4(v_color*(1.-.9*length(relpos)),1.);
+          //color =vec4(v_color,1.);
+        }else{color=vec4(.0);}
+      }
+    </script>
+    <script>
+      window.getShaderSource = function (id) {
+        return document
+          .getElementById(id)
+          .textContent.replace(/^\s+|\s+$/g, "");
+      };
+
+      function createShader(gl, source, type) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }
+
+      window.createProgram = function (
+        gl,
+        vertexShaderSource,
+        fragmentShaderSource
+      ) {
+        const program = gl.createProgram();
+        const vshader = createShader(gl, vertexShaderSource, gl.VERTEX_SHADER);
+        const fshader = createShader(
+          gl,
+          fragmentShaderSource,
+          gl.FRAGMENT_SHADER
+        );
+        gl.attachShader(program, vshader);
+        gl.deleteShader(vshader);
+        gl.attachShader(program, fshader);
+        gl.deleteShader(fshader);
+        gl.linkProgram(program);
+
+        console.log(gl.getProgramInfoLog(program));
+        console.log(gl.getShaderInfoLog(vshader));
+        console.log(gl.getShaderInfoLog(fshader));
+        return program;
+      };
+      const canvas = document.createElement("canvas");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      document.body.appendChild(canvas);
+      const gl = canvas.getContext("webgl2", {
+        antialias: false,
+        alpha: true,
+        premultipliedAlpha: false,
+      });
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      const program = createProgram(
+        gl,
+        getShaderSource("vs"),
+        getShaderSource("fs")
+      );
+      gl.useProgram(program);
+      const vertexArray = gl.createVertexArray();
+      gl.bindVertexArray(vertexArray);
+      const vertexPosLocation = 0;
+      const vertices = new Float32Array([0, 0, 0, 1, 1, 0, 1, 1]);
+      const vertexPosBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexPosBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(vertexPosLocation);
+      gl.vertexAttribPointer(vertexPosLocation, 2, gl.FLOAT, false, 0, 0);
+      const getloc = (name) => gl.getUniformLocation(program, name);
+      gl.uniform2f(getloc("u_res"), canvas.width, canvas.height);
+
+      const y0 = canvas.height / 2;
+      //   const horspeed = 300;
+      let stop = false;
+      const player = {
+        width: 50,
+        height: 50,
+      };
+      const platforms = [];
+      let framecount = 0;
+      let jumpcount = 0;
+      let lasthit = 0;
+      let removedcount=0;
+      let brake = true;
+      let right = true;
+      function reset() {
+        platforms.length = 0;
+        for (i = 0; i < 3; i++) {
+          newPlatform();
+        }
+        player.x = platforms[0];
+        player.y = platforms[1] + 50;
+        player.maxy = 0;
+        player.vx = 0;
+        player.vy = 100;
+        player.ax = 0;
+        player.ay = -350;
+        jumpcount = 0;
+        lasthit = 0;
+        removedcount=0;
+        brake = true;
+      }
+      reset();
+      function newPlatform() {
+        const r = Math.random;
+        platforms.push(
+          (canvas.width-20) * r(),
+          (platforms.at(-3) || player.y || y0) + 250 + 150 * r()
+        );
+        platforms.push(platforms.at(-2) + 60, platforms.at(-1) + 15);
+        gl.uniform4fv(getloc("u_pos[1]"), platforms);
+      }
+
+      const interval = 1000 / 60;
+      let then = Date.now();
+      let pause = false;
+      function draw() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform1f(getloc("u_y"), player.y);
+        gl.drawArraysInstanced(
+          gl.TRIANGLE_STRIP,
+          0,
+          4,
+          ~~(platforms.length / 4) + 1
+        );
+      }
+      function render(time) {
+        const delta = Date.now() - then;
+        framecount++;
+        if (delta > interval) {
+          then = Date.now() - (delta % interval);
+          if (brake) {
+            player.ax = 1200 * Math.sign(-player.vx);
+          } else {
+            if (right) {
+              player.ax = 500;
+            } else {
+              player.ax = -500;
+            }
+          }
+          player.vx += (player.ax * interval) / 1000;
+          player.vy += (player.ay * interval) / 1000;
+          player.x += (player.vx * interval) / 1000;
+          player.y += (player.vy * interval) / 1000;
+          player.x = (player.x + canvas.width - 30) % (canvas.width - 30);
+          gl.uniform4f(
+            getloc("u_pos"),
+            player.x,
+            player.y,
+            player.x + player.width,
+            player.y + player.height
+          );
+          if (player.maxy - player.y > canvas.height - 50) reset();
+          if (player.maxy - platforms[1] > canvas.height - 50) {
+            for (i = 0; i < 4; i++) {
+              platforms.shift();
+            }
+            removedcount++;
+            gl.uniform4fv(getloc("u_pos[1]"), platforms);
+          }
+          player.maxy = Math.max(player.y, player.maxy);
+          if (framecount % 10 == 0)
+            info.innerHTML = `${(lasthit / (jumpcount+1)).toFixed(3)} ${lasthit} `;
+          gl.uniform1f(getloc("u_maxy"), player.maxy);
+          for (i = 0; i < platforms.length; i += 4) {
+            if (
+              platforms[i + 1] < player.y + 0.0 * player.height &&
+              platforms[i + 3] > player.y &&
+              platforms[i + 0] < player.x + player.width &&
+              platforms[i + 2] > player.x &&
+              player.vy < 0
+            ) {
+              player.vy =
+                400 +
+                .0 * Math.random() -
+                .1 * player.vy +
+                .2 * Math.abs(player.vx);
+              jumpcount++;
+              if (lasthit < i / 4 + 1+removedcount) {
+                newPlatform();
+                lasthit = i / 4 + 1+removedcount;
+              }
+            }
+          }
+          draw();
+        }
+        if (!stop) requestAnimationFrame(render);
+      }
+      canvas.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.offsetY > canvas.height /2) {
+          if (e.offsetX < canvas.width / 2) {
+            brake = false;
+            right = false;
+          } else {
+            brake = false;
+            right = true;
+          }
+        }
+      });
+      canvas.addEventListener("pointerup", (e) => {
+        brake = true;
+      });
+      requestAnimationFrame(render);
+    </script>
+  </body>
+</html>
