@@ -224,7 +224,7 @@
           }
           player.maxy = Math.max(player.y, player.maxy);
           if (framecount % 10 == 0)
-            info.innerHTML = `${(lasthit / (jumpcount+1)).toFixed(3)} ${lasthit} `;
+            info.innerHTML = `${(lasthit / (jumpcount+1)*100).toFixed(0)}% ${lasthit} `;
           gl.uniform1f(getloc("u_maxy"), player.maxy);
           for (i = 0; i < platforms.length; i += 4) {
             if (
