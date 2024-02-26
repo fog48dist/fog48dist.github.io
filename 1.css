@@ -4,12 +4,10 @@ html,body{
   margin:0;
 }
 .appPage {
-  background-color: hsl(0, 0%, 80%);
-  --padding-size:12px;
-  padding: var(--padding-size);
-  height: calc(100% - 2 * var(--padding-size));
-  width: calc(100% - 2 * var(--padding-size)); 
-  gap: 8px;
+  background-color: hsl(0, 0%, 90%);
+  gap: 1.5vmin;
+  width: 100%;
+  height: 100%;
   display: grid;
 }
 .appPage > * {
