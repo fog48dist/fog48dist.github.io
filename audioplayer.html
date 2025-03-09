@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<style>
+  html,
+  body {
+    touch-action: manipulation;
+    width: 99%;
+    height: 99%;
+  }
+
+  * {
+    font-size: 5vw;
+  }
+
+  audio {
+    width: 100%;
+  }
+
+  button {
+
+    width: 25%;
+    height: 25%;
+  }
+</style>
+<script>
+  let audio
+  window.onload = e => {
+    fi = document.createElement('input')
+    fi.type = 'file'
+    fi.multiple = true
+    audio = document.createElement('audio')
+    navigator.mediaSession.metadata = new MediaMetadata({title:''})
+    const f = {
+      prev: _ => { curindex--; if (curindex < 0) curindex += fi.files.length; setandplay() },
+      'seekb': _ => audio.currentTime -= 5,
+      'seekf': _ => audio.currentTime += 5,
+      next: _ => { curindex++; if (curindex >= fi.files.length) curindex -= fi.files.length; setandplay() }
+    }
+    audio.controls = true
+    audio.onended = f.next
+    document.body.append(fi, audio, document.createElement('br'))
+    // audio.ontimeupdate = e => { navigator.mediaSession.setPositionState({ position: audio.currentTime, duration: audio.duration || 0 });console.log('tu') }
+    setandplay = _ => {
+      audio.src = URL.createObjectURL(fi.files[curindex]);
+      audio.play()
+      // document.title = fi.files[curindex].name
+      navigator.mediaSession.metadata.title= fi.files[curindex].name
+    }
+    fi.onchange = e => { curindex = 0; setandplay() }
+    for (const [k, v] of Object.entries(f)) { 
+      const b = document.createElement('button')
+      b.innerHTML = k
+      b.onclick = v
+      document.body.append(b)
+    }
+    const actionHandlers = [
+      // ['play', () => { /* ... */ }],
+      // ['pause', () => { /* ... */ }],
+      ['previoustrack', f.prev],
+      ['nexttrack', f.next],
+      // ['stop', () => { /* ... */ }],
+      ['seekbackward', f.seekb],
+      ['seekforward', f.seekf],
+      // ['seekto', (details) => { /* ... */ }],
+    ];
+
+    for (const [action, handler] of actionHandlers) {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch (error) {console.log('error ',action)}
+    }
+  }
+</script>
