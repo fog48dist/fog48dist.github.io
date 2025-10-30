@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #ta {
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+
+<body><textarea autocapitalize='on' id="ta"></textarea></body>
+<script>
+  document.onvisibilitychange = e => {
+    if (document.visibilityState == 'hidden') {
+      localStorage.setItem("body", ta.value)
+    }
+  }
+  window.onload = e => ta.value = localStorage.body || ''
+  function swapLines(l, up = false) {
+    const lines = ta.value.split('\n');
+    if (l >= 0 && l + 1 < lines.length) {
+      lines.splice(l, 2, lines[l + 1], lines[l])
+      const curpos = ta.selectionStart + (up ? -1 : 1) * (lines[l + up].length+1)
+      ta.value = lines.join('\n')
+      ta.setSelectionRange(curpos, curpos)
+    }
+  }
+  const insertText = s => ta.setRangeText(s, ta.selectionStart, ta.selectionEnd, "end")
+  ta.addEventListener("keydown", function (e) {
+    if (e.key == "Enter" || e.ctrlKey) {
+      e.preventDefault()
+      const linesBeforeCursor = ta.value.substring(0, ta.selectionStart).split("\n");
+      const lineNumber = linesBeforeCursor.length - 1
+      if (e.key == "Enter") {
+        const line = linesBeforeCursor[lineNumber ]
+        const indentation = line.replace(line.trimStart(), "");
+        insertText('\n'+indentation)
+      }
+      if (e.ctrlKey) {
+        if (e.key == 'ArrowUp') { swapLines(lineNumber - 1, true) }
+        if (e.key == 'ArrowDown') { swapLines(lineNumber) }
+      }
+    }
+  });
+
+</script>
