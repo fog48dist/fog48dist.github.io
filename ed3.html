@@ -46,6 +46,7 @@
           ta.setSelectionRange(curpos,curpos)
         }else{
           const indentation = line.replace(line.trimStart(), "");
+          if(indentation[0]!=='\n')insertText('\n')
           insertText(indentation)
         }
       }
