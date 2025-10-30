@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<style>
+  body {
+    margin: 0;
+    overflow-x:hidden;
+  }
+  #ta {
+    box-sizing: border-box;
+    width: 99vw;
+    height: 100vh;
+  }
+</style>
+
+<body><textarea autocapitalize='on' id="ta"></textarea></body>
+<script>
+  document.onvisibilitychange = e => {
+    if (document.visibilityState == 'hidden') {
+      localStorage.setItem("body", ta.value)
+    }
+  }
+  window.onload = e => ta.value = localStorage.body || ''
+  function swapLines(l, up = false) {
+    if(l>=0){
+      const lines = ta.value.split('\n');
+      if (l < lines.length - 1) {
+        lines.splice(l, 2, lines[l + 1], lines[l])
+        const curpos = ta.selectionStart+(up ? -1 : 1) * (lines[l + up].length+1)
+        ta.value = lines.join('\n')
+        ta.setSelectionRange(curpos,curpos)
+      }
+    }
+  }
+  const insertText = s => ta.setRangeText(s, ta.selectionStart, ta.selectionEnd, "end")
+  ta.addEventListener("keydown", function (e) {
+    if (e.key == "Enter" || e.ctrlKey||e.key=="Tab") {
+      e.preventDefault()
+      const linesBeforeCursor = ta.value.substring(0, ta.selectionStart).split("\n");
+      const lineNumber = linesBeforeCursor.length - 1
+      if (e.key == "Enter") {
+        // const line = linesBeforeCursor[lineNumber ]
+        const line = ta.value.substring(ta.value.lastIndexOf('\n',ta.selectionStart-1),ta.value.indexOf('\n',ta.selectionStart))
+        console.log(ta.value.lastIndexOf('\n',ta.selectionStart-1),ta.value.indexOf('\n',ta.selectionStart),line)
+        if(line.includes('|')){
+          const curpos=ta.selectionStart+1
+          insertText(line.replace(/[^|\n]/g, " "))
+          ta.setSelectionRange(curpos,curpos)
+        }else{
+          const indentation = line.replace(line.trimStart(), "");
+          insertText(indentation)
+        }
+      }
+      if(e.key=="Tab"){
+      // const line = linesBeforeCursor[lineNumber ]
+      }
+      if (e.ctrlKey) {
+        if (e.key == 'ArrowUp') {swapLines(lineNumber - 1, true) }
+        if (e.key == 'ArrowDown') {swapLines(lineNumber) }
+      }
+    }
+  })
+  ta.addEventListener("input",function(e){
+    // console.log(e.data,ta.value[ta.selectionStart])
+    if(/^ +\|/.test(ta.value.substring(ta.selectionStart)))ta.setRangeText(e.data, ta.selectionStart-1,ta.selectionStart+1, "end")
+  })
+
+</script>
