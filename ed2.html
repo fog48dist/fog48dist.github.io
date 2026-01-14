@@ -35,13 +35,14 @@
       const linesBeforeCursor = ta.value.substring(0, ta.selectionStart).split("\n");
       const lineNumber = linesBeforeCursor.length - 1
       if (e.key == "Enter") {
+        e.preventDefault()
         const line = linesBeforeCursor[lineNumber ]
         const indentation = line.replace(line.trimStart(), "");
         insertText('\n'+indentation)
       }
       if (e.ctrlKey) {
-        if (e.key == 'ArrowUp') { swapLines(lineNumber - 1, true) }
-        if (e.key == 'ArrowDown') { swapLines(lineNumber) }
+        if (e.key == 'ArrowUp') {e.preventDefault(); swapLines(lineNumber - 1, true) }
+        if (e.key == 'ArrowDown') {e.preventDefault(); swapLines(lineNumber) }
       }
     }
   });
