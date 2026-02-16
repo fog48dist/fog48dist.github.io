@@ -19,10 +19,10 @@
     }
   }
   window.onload = e => ta.value = localStorage.body || ''
-  function swapLines(l, up = false) {
+  function swapLines(l, up = false,copy=false) {
     const lines = ta.value.split('\n');
     if (l >= 0 && l + 1 < lines.length) {
-      lines.splice(l, 2, lines[l + 1], lines[l])
+      lines.splice(l, 2-+copy, lines[l + 1], lines[l])
       const curpos = ta.selectionStart + (up ? -1 : 1) * (lines[l + up].length+1)
       ta.value = lines.join('\n')
       ta.setSelectionRange(curpos, curpos)
@@ -31,7 +31,6 @@
   const insertText = s => ta.setRangeText(s, ta.selectionStart, ta.selectionEnd, "end")
   ta.addEventListener("keydown", function (e) {
     if (e.key == "Enter" || e.ctrlKey) {
-      e.preventDefault()
       const linesBeforeCursor = ta.value.substring(0, ta.selectionStart).split("\n");
       const lineNumber = linesBeforeCursor.length - 1
       if (e.key == "Enter") {
@@ -41,8 +40,8 @@
         insertText('\n'+indentation)
       }
       if (e.ctrlKey) {
-        if (e.key == 'ArrowUp') {e.preventDefault(); swapLines(lineNumber - 1, true) }
-        if (e.key == 'ArrowDown') {e.preventDefault(); swapLines(lineNumber) }
+        if (e.key == 'ArrowUp') {e.preventDefault(); swapLines(lineNumber - 1, true,e.altKey) }
+        if (e.key == 'ArrowDown') {e.preventDefault(); swapLines(lineNumber,false,e.altKey) }
       }
     }
   });
